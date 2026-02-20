@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaito Whale — PoC Enkripsi Getaran</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Figtree', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100">
+  <div class="max-w-lg mx-auto px-4 py-8">
+    <header class="text-center mb-8">
+      <h1 class="text-2xl font-bold text-stone-800 dark:text-stone-100">PoC Enkripsi Getaran</h1>
+      <p class="text-sm text-stone-500 dark:text-stone-400 mt-1">Enkripsi → unduh file WAV (bisa diputar di VLC/HP). Dekripsi hanya di sini → plaintext + putar getaran.</p>
+    </header>
+
+    <!-- Error / status -->
+    <div id="status" class="hidden mb-4 p-3 rounded-lg text-sm" role="alert"></div>
+
+    <!-- Section 1: Encrypt -->
+    <section class="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl p-4 shadow-sm mb-6">
+      <h2 class="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-3">🔒 Enkripsi</h2>
+      <label class="block text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-1">Plaintext</label>
+      <textarea id="plaintext" rows="3" placeholder="Tulis pesan rahasia…"
+        class="w-full px-3 py-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-sm resize-y mb-3"></textarea>
+      <label class="block text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-1">Kata sandi</label>
+      <input type="password" id="encPassword" placeholder="Kata sandi untuk enkripsi"
+        class="w-full px-3 py-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-sm mb-3" />
+      <div class="flex flex-col gap-2">
+        <div class="flex gap-2">
+          <button type="button" id="encryptBtn" class="flex-1 py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition active:scale-[0.99]">
+            Enkripsi
+          </button>
+          <a id="downloadLink" href="#" download="kaito-whale-encrypted.wav" class="hidden flex-1 py-2.5 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm text-center transition active:scale-[0.99]">
+            ⬇ WAV (VLC)
+          </a>
+        </div>
+        <a id="downloadLinkWa" href="#" download="kaito-whale-encrypted.kwv" class="hidden w-full py-2.5 px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm text-center transition active:scale-[0.99]">
+          ⬇ Untuk WhatsApp (.kwv)
+        </a>
+        <p id="waHint" class="hidden text-xs text-stone-500 dark:text-stone-400 mt-1">
+          Kirim file <strong>.kwv</strong> sebagai <strong>Dokumen</strong> di WhatsApp (jangan pilih sebagai Audio), agar isi file tidak berubah.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 2: Decrypt -->
+    <section class="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl p-4 shadow-sm mb-6">
+      <h2 class="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-3">🔓 Dekripsi</h2>
+      <label class="block text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-1">File (WAV dari enkripsi atau .kwv lama)</label>
+      <input type="file" id="fileInput" accept=".wav,.kwv,.json,audio/wav,application/json"
+        class="w-full text-sm text-stone-600 dark:text-stone-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-stone-200 dark:file:bg-stone-600 file:text-stone-800 dark:file:text-stone-200 file:font-medium file:cursor-pointer mb-3" />
+      <label class="block text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-1">Kata sandi</label>
+      <input type="password" id="decPassword" placeholder="Kata sandi yang sama"
+        class="w-full px-3 py-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-sm mb-3" />
+      <button type="button" id="decryptBtn" class="w-full py-2.5 px-4 rounded-lg bg-stone-700 dark:bg-stone-600 hover:bg-stone-600 dark:hover:bg-stone-500 text-white font-semibold text-sm transition active:scale-[0.99] mb-3">
+        Dekripsi
+      </button>
+      <div id="decryptResult" class="hidden border-t border-stone-200 dark:border-stone-600 pt-3 mt-3">
+        <p class="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-1">Plaintext</p>
+        <div id="decryptedText" class="p-3 rounded-lg bg-stone-100 dark:bg-stone-700/50 text-stone-900 dark:text-stone-100 text-sm break-words mb-2"></div>
+        <button type="button" id="playVibrationBtn" class="w-full py-2.5 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition active:scale-[0.99]">
+          🔁 Putar getaran
+        </button>
+      </div>
+    </section>
+
+    <p class="text-xs text-stone-500 dark:text-stone-400 text-center">
+      WAV = bisa diputar di VLC (noise). Untuk WhatsApp: unduh .kwv dan kirim sebagai <strong>Dokumen</strong>. Decode hanya di sini + kata sandi.
+    </p>
+  </div>
+
+  <script>
+(function () {
+  'use strict';
+
+  // --- Braille → getaran (sama dengan app utama) ---
+  const BRAILLE_MAP = {
+    'a': [1,0,0,0,0,0], 'b': [1,1,0,0,0,0], 'c': [1,0,0,1,0,0], 'd': [1,0,0,1,1,0], 'e': [1,0,0,0,1,0],
+    'f': [1,1,0,1,0,0], 'g': [1,1,0,1,1,0], 'h': [1,1,0,0,1,0], 'i': [0,1,0,1,0,0], 'j': [0,1,0,1,1,0],
+    'k': [1,0,1,0,0,0], 'l': [1,1,1,0,0,0], 'm': [1,0,1,1,0,0], 'n': [1,0,1,1,1,0], 'o': [1,0,1,0,1,0],
+    'p': [1,1,1,1,0,0], 'q': [1,1,1,1,1,0], 'r': [1,1,1,0,1,0], 's': [0,1,1,1,0,0], 't': [0,1,1,1,1,0],
+    'u': [1,0,1,0,0,1], 'v': [1,1,1,0,0,1], 'w': [0,1,0,1,1,1], 'x': [1,0,1,1,0,1], 'y': [1,0,1,1,1,1], 'z': [1,0,1,0,1,1],
+    ' ': null,
+    '0': [0,1,0,1,1,0], '1': [1,0,0,0,0,0], '2': [1,1,0,0,0,0], '3': [1,0,0,1,0,0], '4': [1,0,0,1,1,0],
+    '5': [1,0,0,0,1,0], '6': [1,1,0,1,0,0], '7': [1,1,0,1,1,0], '8': [1,1,0,0,1,0], '9': [0,1,0,1,0,0]
+  };
+  const DURATIONS = { SHORT: 200, LONG: 500, DOT_PAUSE: 100, CHAR_PAUSE: 300, WORD_PAUSE: 500 };
+
+  function textToVibrationPattern(text) {
+    const patterns = [];
+    const t = String(text).toLowerCase();
+    for (let i = 0; i < t.length; i++) {
+      const char = t[i];
+      if (char === ' ') {
+        patterns.push({ type: 'pause', duration: DURATIONS.WORD_PAUSE });
+        continue;
+      }
+      const braille = BRAILLE_MAP[char];
+      if (!braille) continue;
+      for (let j = 0; j < braille.length; j++) {
+        patterns.push({
+          type: braille[j] === 1 ? 'vibrate' : 'pause',
+          duration: braille[j] === 1 ? DURATIONS.LONG : DURATIONS.SHORT
+        });
+        if (j < braille.length - 1)
+          patterns.push({ type: 'pause', duration: DURATIONS.DOT_PAUSE });
+      }
+      if (i < t.length - 1 && t[i + 1] !== ' ')
+        patterns.push({ type: 'pause', duration: DURATIONS.CHAR_PAUSE });
+    }
+    return patterns;
+  }
+
+  function playVibration(patterns) {
+    if (typeof navigator === 'undefined' || !navigator.vibrate || !patterns.length) return Promise.resolve();
+    const arr = patterns.map(function (p) { return Math.round(p.duration); });
+    navigator.vibrate(arr);
+    var total = arr.reduce(function (a, b) { return a + b; }, 0);
+    return new Promise(function (resolve) { setTimeout(resolve, total); });
+  }
+
+  // --- Crypto: AES-GCM + PBKDF2 ---
+  const PBKDF2_ITERATIONS = 250000;
+  const SALT_LEN = 16;
+  const IV_LEN = 12;
+  const KEY_LEN = 256;
+
+  function bufToB64(buf) {
+    var binary = '';
+    var bytes = new Uint8Array(buf);
+    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  function b64ToBuf(b64) {
+    var binary = atob(b64);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
+  }
+
+  function getKey(password, salt) {
+    return crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(password),
+      'PBKDF2',
+      false,
+      ['deriveBits', 'deriveKey']
+    ).then(function (keyMaterial) {
+      return crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt: salt,
+          iterations: PBKDF2_ITERATIONS,
+          hash: 'SHA-256'
+        },
+        keyMaterial,
+        { name: 'AES-GCM', length: KEY_LEN },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    });
+  }
+
+  function encrypt(plaintext, password) {
+    var salt = crypto.getRandomValues(new Uint8Array(SALT_LEN));
+    var iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
+    var data = new TextEncoder().encode(plaintext);
+    return getKey(password, salt).then(function (key) {
+      return crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: iv, tagLength: 128 },
+        key,
+        data
+      ).then(function (ciphertext) {
+        return {
+          version: 1,
+          salt: bufToB64(salt),
+          iv: bufToB64(iv),
+          payload: bufToB64(ciphertext)
+        };
+      });
+    });
+  }
+
+  function decrypt(fileObj, password) {
+    var salt = new Uint8Array(b64ToBuf(fileObj.salt));
+    var iv = new Uint8Array(b64ToBuf(fileObj.iv));
+    var ciphertext = b64ToBuf(fileObj.payload);
+    return decryptFromRaw(salt, iv, ciphertext, password);
+  }
+
+  function decryptFromRaw(salt, iv, ciphertext, password) {
+    return getKey(password, salt).then(function (key) {
+      return crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv, tagLength: 128 },
+        key,
+        ciphertext
+      ).then(function (plainBuffer) {
+        return new TextDecoder().decode(plainBuffer);
+      });
+    });
+  }
+
+  // --- WAV: tiap byte = 8 "bit" bunyi (tone=1, hening=0) agar panjang/pendek beda tiap file ---
+  var WAV_SAMPLE_RATE = 8000;
+  var WAV_MS_PER_BIT = 40;
+  var WAV_SAMPLES_PER_BIT = Math.round((WAV_MS_PER_BIT / 1000) * WAV_SAMPLE_RATE);
+  var WAV_TONE_HZ = 440;
+  var WAV_AMPLITUDE = 0.25;
+
+  function createWavFromPayload(salt, iv, ciphertext) {
+    var saltArr = new Uint8Array(salt);
+    var ivArr = new Uint8Array(iv);
+    var ctArr = new Uint8Array(ciphertext);
+    var totalBytes = 16 + 12 + ctArr.length;
+    var numSamples = totalBytes * 8 * WAV_SAMPLES_PER_BIT;
+    var buf = new ArrayBuffer(44 + numSamples * 2);
+    var view = new DataView(buf);
+    var offset = 0;
+    function writeStr(s) { for (var i = 0; i < s.length; i++) view.setUint8(offset++, s.charCodeAt(i)); }
+    function write32LE(v) { view.setUint32(offset, v, true); offset += 4; }
+    function write16LE(v) { view.setUint16(offset, v, true); offset += 2; }
+    writeStr('RIFF');
+    write32LE(36 + numSamples * 2);
+    writeStr('WAVE');
+    writeStr('fmt ');
+    write32LE(16);
+    write16LE(1);
+    write16LE(1);
+    write32LE(WAV_SAMPLE_RATE);
+    write32LE(WAV_SAMPLE_RATE * 2);
+    write16LE(2);
+    write16LE(16);
+    writeStr('data');
+    write32LE(numSamples * 2);
+    var allBytes = new Uint8Array(28 + ctArr.length);
+    allBytes.set(saltArr, 0);
+    allBytes.set(ivArr, 16);
+    allBytes.set(ctArr, 28);
+    for (var b = 0; b < allBytes.length; b++) {
+      var byte = allBytes[b];
+      for (var bit = 7; bit >= 0; bit--) {
+        var on = (byte >>> bit) & 1;
+        for (var s = 0; s < WAV_SAMPLES_PER_BIT; s++) {
+          var t = (b * 8 * WAV_SAMPLES_PER_BIT + (7 - bit) * WAV_SAMPLES_PER_BIT + s) / WAV_SAMPLE_RATE;
+          var sample = on ? Math.sin(2 * Math.PI * WAV_TONE_HZ * t) * WAV_AMPLITUDE * 32767 : 0;
+          view.setInt16(offset, Math.max(-32768, Math.min(32767, Math.round(sample))), true);
+          offset += 2;
+        }
+      }
+    }
+    return buf;
+  }
+
+  function parseWavToPayload(arrayBuffer) {
+    var v = new DataView(arrayBuffer);
+    if (v.byteLength < 44) return null;
+    if (String.fromCharCode(v.getUint8(0), v.getUint8(1), v.getUint8(2), v.getUint8(3)) !== 'RIFF') return null;
+    if (String.fromCharCode(v.getUint8(8), v.getUint8(9), v.getUint8(10), v.getUint8(11)) !== 'WAVE') return null;
+    var dataSize = v.getUint32(40, true);
+    var numSamples = dataSize >>> 1;
+    var totalBytes;
+    var bytes = [];
+    if (numSamples % (8 * WAV_SAMPLES_PER_BIT) === 0 && numSamples >= 28 * 8 * WAV_SAMPLES_PER_BIT) {
+      totalBytes = numSamples / (8 * WAV_SAMPLES_PER_BIT);
+      var base = 44;
+      for (var b = 0; b < totalBytes; b++) {
+        var byte = 0;
+        for (var bit = 0; bit < 8; bit++) {
+          var chunkStart = base + (b * 8 + bit) * WAV_SAMPLES_PER_BIT * 2;
+          var sum = 0;
+          for (var s = 0; s < WAV_SAMPLES_PER_BIT; s++) {
+            var x = v.getInt16(chunkStart + s * 2, true);
+            sum += x * x;
+          }
+          var rms = Math.sqrt(sum / WAV_SAMPLES_PER_BIT);
+          byte = (byte << 1) | (rms > 2000 ? 1 : 0);
+        }
+        bytes.push(byte);
+      }
+    } else {
+      if (numSamples < 28) return null;
+      totalBytes = numSamples;
+      for (var i = 0; i < totalBytes; i++) bytes.push(v.getUint16(44 + i * 2, true) >>> 8);
+    }
+    if (bytes.length < 28) return null;
+    var salt = new Uint8Array(bytes.slice(0, 16));
+    var iv = new Uint8Array(bytes.slice(16, 28));
+    var ciphertext = new Uint8Array(bytes.slice(28)).buffer;
+    return { salt: salt, iv: iv, ciphertext: ciphertext };
+  }
+
+  // --- UI ---
+  var statusEl = document.getElementById('status');
+  var plaintextEl = document.getElementById('plaintext');
+  var encPasswordEl = document.getElementById('encPassword');
+  var encryptBtn = document.getElementById('encryptBtn');
+  var downloadLink = document.getElementById('downloadLink');
+  var downloadLinkWa = document.getElementById('downloadLinkWa');
+  var waHint = document.getElementById('waHint');
+  var fileInput = document.getElementById('fileInput');
+  var decPasswordEl = document.getElementById('decPassword');
+  var decryptBtn = document.getElementById('decryptBtn');
+  var decryptResult = document.getElementById('decryptResult');
+  var decryptedText = document.getElementById('decryptedText');
+  var playVibrationBtn = document.getElementById('playVibrationBtn');
+
+  var lastDecryptedPlaintext = '';
+
+  function showStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.className = 'mb-4 p-3 rounded-lg text-sm ' + (isError ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200');
+    statusEl.hidden = false;
+  }
+
+  function hideStatus() {
+    statusEl.hidden = true;
+  }
+
+  encryptBtn.addEventListener('click', function () {
+    hideStatus();
+    var text = (plaintextEl.value || '').trim();
+    var password = encPasswordEl.value || '';
+    if (!text) {
+      showStatus('Masukkan plaintext.', true);
+      return;
+    }
+    if (!password) {
+      showStatus('Masukkan kata sandi untuk enkripsi.', true);
+      return;
+    }
+    encryptBtn.disabled = true;
+    encryptBtn.textContent = 'Memproses…';
+    if (downloadLink.href && downloadLink.href.indexOf('blob:') === 0) URL.revokeObjectURL(downloadLink.href);
+    if (downloadLinkWa.href && downloadLinkWa.href.indexOf('blob:') === 0) URL.revokeObjectURL(downloadLinkWa.href);
+    encrypt(text, password).then(function (obj) {
+      var salt = new Uint8Array(b64ToBuf(obj.salt));
+      var iv = new Uint8Array(b64ToBuf(obj.iv));
+      var ciphertext = b64ToBuf(obj.payload);
+      var wavBuffer = createWavFromPayload(salt, iv, ciphertext);
+      var blob = new Blob([wavBuffer], { type: 'audio/wav' });
+      downloadLink.href = URL.createObjectURL(blob);
+      downloadLink.download = 'kaito-whale-encrypted.wav';
+      downloadLink.classList.remove('hidden');
+      downloadLinkWa.href = URL.createObjectURL(blob);
+      downloadLinkWa.download = 'kaito-whale-encrypted.kwv';
+      downloadLinkWa.classList.remove('hidden');
+      waHint.classList.remove('hidden');
+      showStatus('Enkripsi berhasil. Untuk WhatsApp: unduh .kwv dan kirim sebagai Dokumen.');
+      encryptBtn.disabled = false;
+      encryptBtn.textContent = 'Enkripsi';
+    }).catch(function (err) {
+      showStatus('Enkripsi gagal: ' + (err.message || err), true);
+      encryptBtn.disabled = false;
+      encryptBtn.textContent = 'Enkripsi';
+    });
+  });
+
+  decryptBtn.addEventListener('click', function () {
+    hideStatus();
+    var file = fileInput.files && fileInput.files[0];
+    var password = decPasswordEl.value || '';
+    if (!file) {
+      showStatus('Pilih file WAV atau .kwv dulu.', true);
+      return;
+    }
+    if (!password) {
+      showStatus('Masukkan kata sandi.', true);
+      return;
+    }
+    decryptBtn.disabled = true;
+    decryptBtn.textContent = 'Memproses…';
+    var reader = new FileReader();
+    reader.onload = function () {
+      function fail(msg) {
+        showStatus(msg, true);
+        decryptBtn.disabled = false;
+        decryptBtn.textContent = 'Dekripsi';
+      }
+      function succeed(plaintext) {
+        lastDecryptedPlaintext = plaintext;
+        decryptedText.textContent = plaintext;
+        decryptResult.classList.remove('hidden');
+        showStatus('Dekripsi berhasil. Putar getaran atau baca plaintext di bawah.');
+        decryptBtn.disabled = false;
+        decryptBtn.textContent = 'Dekripsi';
+      }
+      var buf = reader.result;
+      var isWav = buf.byteLength >= 12 && new Uint8Array(buf)[0] === 0x52 && new Uint8Array(buf)[1] === 0x49 && new Uint8Array(buf)[2] === 0x46 && new Uint8Array(buf)[3] === 0x46;
+      if (isWav) {
+        var payload = parseWavToPayload(buf);
+        if (!payload) {
+          fail('File WAV tidak valid atau bukan file enkripsi Kaito Whale.');
+          return;
+        }
+        decryptFromRaw(payload.salt, payload.iv, payload.ciphertext, password).then(succeed).catch(function (err) {
+          fail('Dekripsi gagal (kata sandi salah atau file rusak): ' + (err.message || err));
+        });
+      } else {
+        try {
+          var text = new TextDecoder().decode(new Uint8Array(buf));
+          var obj = JSON.parse(text);
+          if (!obj.salt || !obj.iv || !obj.payload) {
+            throw new Error('Format file tidak valid.');
+          }
+          decrypt(obj, password).then(succeed).catch(function (err) {
+            fail('Dekripsi gagal: ' + (err.message || err));
+          });
+        } catch (e) {
+          fail('File tidak valid (harus WAV atau .kwv JSON): ' + (e.message || e));
+        }
+      }
+    };
+    reader.onerror = function () {
+      showStatus('Gagal membaca file.', true);
+      decryptBtn.disabled = false;
+      decryptBtn.textContent = 'Dekripsi';
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  playVibrationBtn.addEventListener('click', function () {
+    if (!lastDecryptedPlaintext) return;
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      var patterns = textToVibrationPattern(lastDecryptedPlaintext);
+      playVibrationBtn.disabled = true;
+      playVibrationBtn.textContent = 'Memutar…';
+      playVibration(patterns).then(function () {
+        playVibrationBtn.disabled = false;
+        playVibrationBtn.textContent = '🔁 Putar getaran';
+      });
+    } else {
+      showStatus('Getaran tidak didukung di perangkat/browser ini.', true);
+    }
+  });
+})();
+  </script>
+</body>
+</html>
