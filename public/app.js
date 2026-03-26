@@ -57,6 +57,12 @@
       morseInput = '';
       syncMorseUI();
     });
+
+    // Synchronize: when textarea changes, clear Morse input
+    messageInput.addEventListener('input', function () {
+      morseInput = '';
+      syncMorseUI();
+    });
     document.getElementById('morseSpaceBtn').addEventListener('click', function () {
       messageInput.value = messageInput.value + ' ';
       if (charCount) charCount.textContent = messageInput.value.length;
