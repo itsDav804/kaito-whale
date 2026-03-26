@@ -7,37 +7,46 @@
   'use strict';
   // --- Ensure Braille input UI is initialized for all users ---
   document.addEventListener('DOMContentLoaded', function () {
-    // --- Input Braille 6 titik (on-screen keyboard) ---
-    var brailleCell = [0, 0, 0, 0, 0, 0];
-    function syncBrailleUI() {
-      document.querySelectorAll('.braille-dot').forEach(function (btn) {
-        var idx = parseInt(btn.getAttribute('data-dot'), 10) - 1;
-        btn.textContent = brailleCell[idx] ? '●' : '○';
-        btn.classList.toggle('bg-emerald-200', !!brailleCell[idx]);
-        btn.classList.toggle('dark:bg-emerald-700/50', !!brailleCell[idx]);
-      });
-      var key = brailleCell.join('');
-      var ch = REVERSE_BRAILLE_MAP[key];
-      var previewEl = document.getElementById('brailleCellPreview');
-      if (previewEl) previewEl.textContent = ch ? ('Karakter: "' + ch + '"') : 'Sel kosong';
-    }
-    function clearBrailleCell() {
-      brailleCell = [0, 0, 0, 0, 0, 0];
-      syncBrailleUI();
-    }
-    document.querySelectorAll('.braille-dot').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var idx = parseInt(this.getAttribute('data-dot'), 10) - 1;
-        brailleCell[idx] = brailleCell[idx] ? 0 : 1;
-        syncBrailleUI();
-      });
+    // --- Morse Input Logic ---
+    // Morse code map (A-Z, 0-9)
+    const MORSE_MAP = {
+      'A': '.-',    'B': '-...',  'C': '-.-.',  'D': '-..',   'E': '.',
+      'F': '..-.',  'G': '--.',   'H': '....',  'I': '..',    'J': '.---',
+      'K': '-.-',   'L': '.-..',  'M': '--',    'N': '-.',    'O': '---',
+      'P': '.--.',  'Q': '--.-',  'R': '.-.',   'S': '...',   'T': '-',
+      'U': '..-',   'V': '...-',  'W': '.--',   'X': '-..-',  'Y': '-.--',
+      'Z': '--..',
+      '0': '-----', '1': '.----', '2': '..---', '3': '...--', '4': '....-',
+      '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.'
+    };
+    // Reverse map: Morse string → char
+    const REVERSE_MORSE_MAP = {};
+    Object.keys(MORSE_MAP).forEach(function (ch) {
+      REVERSE_MORSE_MAP[MORSE_MAP[ch]] = ch;
     });
-    document.getElementById('brailleAddCharBtn').addEventListener('click', function () {
-      var key = brailleCell.join('');
-      var ch = REVERSE_BRAILLE_MAP[key];
+
+    var morseInput = '';
+    var morseInputPreview = document.getElementById('morseInputPreview');
+    var messageInput = document.getElementById('messageInput');
+    var charCount = document.getElementById('charCount');
+
+    function syncMorseUI() {
+      if (morseInputPreview) {
+        morseInputPreview.textContent = morseInput || ' ';
+      }
+    }
+
+    document.getElementById('morseDotBtn').addEventListener('click', function () {
+      morseInput += '.';
+      syncMorseUI();
+    });
+    document.getElementById('morseDashBtn').addEventListener('click', function () {
+      morseInput += '-';
+      syncMorseUI();
+    });
+    document.getElementById('morseAddCharBtn').addEventListener('click', function () {
+      var ch = REVERSE_MORSE_MAP[morseInput];
       if (ch !== undefined) {
-        var messageInput = document.getElementById('messageInput');
-        var charCount = document.getElementById('charCount');
         messageInput.value = messageInput.value + ch;
         if (charCount) charCount.textContent = messageInput.value.length;
         document.getElementById('sendBtn').disabled = !isConnected() || !messageInput.value.trim();
@@ -45,11 +54,10 @@
         if (playBtnEl) playBtnEl.disabled = !messageInput.value.trim();
         updateSendPreview();
       }
-      clearBrailleCell();
+      morseInput = '';
+      syncMorseUI();
     });
-    document.getElementById('brailleSpaceBtn').addEventListener('click', function () {
-      var messageInput = document.getElementById('messageInput');
-      var charCount = document.getElementById('charCount');
+    document.getElementById('morseSpaceBtn').addEventListener('click', function () {
       messageInput.value = messageInput.value + ' ';
       if (charCount) charCount.textContent = messageInput.value.length;
       document.getElementById('sendBtn').disabled = !isConnected() || !messageInput.value.trim();
@@ -57,43 +65,37 @@
       if (playBtnEl) playBtnEl.disabled = !messageInput.value.trim();
       updateSendPreview();
     });
-    document.getElementById('brailleBackspaceBtn').addEventListener('click', function () {
-      var messageInput = document.getElementById('messageInput');
-      var charCount = document.getElementById('charCount');
-      if (messageInput.value.length === 0) return;
-      messageInput.value = messageInput.value.slice(0, -1);
-      if (charCount) charCount.textContent = messageInput.value.length;
-      document.getElementById('sendBtn').disabled = !isConnected() || !messageInput.value.trim();
-      var playBtnEl = document.getElementById('playBtn');
-      if (playBtnEl) playBtnEl.disabled = !messageInput.value.trim();
-      updateSendPreview();
+    document.getElementById('morseBackspaceBtn').addEventListener('click', function () {
+      if (morseInput.length > 0) {
+        morseInput = morseInput.slice(0, -1);
+        syncMorseUI();
+      }
     });
-    syncBrailleUI();
+    document.getElementById('morseClearBtn').addEventListener('click', function () {
+      morseInput = '';
+      syncMorseUI();
+    });
+    syncMorseUI();
   });
 
-  // --- Braille encoder (sama dengan versi React Native) ---
-  const BRAILLE_MAP = {
-    'a': [1, 0, 0, 0, 0, 0], 'b': [1, 1, 0, 0, 0, 0], 'c': [1, 0, 0, 1, 0, 0],
-    'd': [1, 0, 0, 1, 1, 0], 'e': [1, 0, 0, 0, 1, 0], 'f': [1, 1, 0, 1, 0, 0],
-    'g': [1, 1, 0, 1, 1, 0], 'h': [1, 1, 0, 0, 1, 0], 'i': [0, 1, 0, 1, 0, 0],
-    'j': [0, 1, 0, 1, 1, 0], 'k': [1, 0, 1, 0, 0, 0], 'l': [1, 1, 1, 0, 0, 0],
-    'm': [1, 0, 1, 1, 0, 0], 'n': [1, 0, 1, 1, 1, 0], 'o': [1, 0, 1, 0, 1, 0],
-    'p': [1, 1, 1, 1, 0, 0], 'q': [1, 1, 1, 1, 1, 0], 'r': [1, 1, 1, 0, 1, 0],
-    's': [0, 1, 1, 1, 0, 0], 't': [0, 1, 1, 1, 1, 0], 'u': [1, 0, 1, 0, 0, 1],
-    'v': [1, 1, 1, 0, 0, 1], 'w': [0, 1, 0, 1, 1, 1], 'x': [1, 0, 1, 1, 0, 1],
-    'y': [1, 0, 1, 1, 1, 1], 'z': [1, 0, 1, 0, 1, 1], ' ': null,
-    '0': [0, 1, 0, 1, 1, 0], '1': [1, 0, 0, 0, 0, 0], '2': [1, 1, 0, 0, 0, 0],
-    '3': [1, 0, 0, 1, 0, 0], '4': [1, 0, 0, 1, 1, 0], '5': [1, 0, 0, 0, 1, 0],
-    '6': [1, 1, 0, 1, 0, 0], '7': [1, 1, 0, 1, 1, 0], '8': [1, 1, 0, 0, 1, 0],
-    '9': [0, 1, 0, 1, 0, 0]
-  };
 
-  // Reverse: pola 6-titik (string) → karakter (untuk input Braille keyboard)
-  var REVERSE_BRAILLE_MAP = {};
-  for (var ch in BRAILLE_MAP) {
-    var pat = BRAILLE_MAP[ch];
-    if (pat) REVERSE_BRAILLE_MAP[pat.join('')] = ch;
-  }
+  // --- Morse encoder ---
+  // Morse code map (A-Z, 0-9)
+  const MORSE_MAP = {
+    'A': '.-',    'B': '-...',  'C': '-.-.',  'D': '-..',   'E': '.',
+    'F': '..-.',  'G': '--.',   'H': '....',  'I': '..',    'J': '.---',
+    'K': '-.-',   'L': '.-..',  'M': '--',    'N': '-.',    'O': '---',
+    'P': '.--.',  'Q': '--.-',  'R': '.-.',   'S': '...',   'T': '-',
+    'U': '..-',   'V': '...-',  'W': '.--',   'X': '-..-',  'Y': '-.--',
+    'Z': '--..',
+    '0': '-----', '1': '.----', '2': '..---', '3': '...--', '4': '....-',
+    '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.'
+  };
+  // Reverse map: Morse string → char
+  const REVERSE_MORSE_MAP = {};
+  Object.keys(MORSE_MAP).forEach(function (ch) {
+    REVERSE_MORSE_MAP[MORSE_MAP[ch]] = ch;
+  });
 
   const DURATIONS = {
     SHORT: 200,
@@ -103,23 +105,25 @@
     WORD_PAUSE: 500
   };
 
+
   function textToVibrationPattern(text) {
     const patterns = [];
-    const t = text.toLowerCase();
+    const t = text.toUpperCase();
     for (let i = 0; i < t.length; i++) {
       const char = t[i];
       if (char === ' ') {
         patterns.push({ type: 'pause', duration: DURATIONS.WORD_PAUSE });
         continue;
       }
-      const braille = BRAILLE_MAP[char];
-      if (!braille) continue;
-      for (let j = 0; j < braille.length; j++) {
-        patterns.push({
-          type: braille[j] === 1 ? 'vibrate' : 'pause',
-          duration: braille[j] === 1 ? DURATIONS.LONG : DURATIONS.SHORT
-        });
-        if (j < braille.length - 1)
+      const morse = MORSE_MAP[char];
+      if (!morse) continue;
+      for (let j = 0; j < morse.length; j++) {
+        if (morse[j] === '.') {
+          patterns.push({ type: 'vibrate', duration: DURATIONS.SHORT });
+        } else if (morse[j] === '-') {
+          patterns.push({ type: 'vibrate', duration: DURATIONS.LONG });
+        }
+        if (j < morse.length - 1)
           patterns.push({ type: 'pause', duration: DURATIONS.DOT_PAUSE });
       }
       if (i < t.length - 1 && t[i + 1] !== ' ')
@@ -130,18 +134,18 @@
 
   function getPatternPreview(text) {
     let preview = '';
-    const t = text.toLowerCase();
+    const t = text.toUpperCase();
     for (const char of t) {
       if (char === ' ') {
         preview += '[SPACE] ';
         continue;
       }
-      const braille = BRAILLE_MAP[char];
-      if (!braille) {
+      const morse = MORSE_MAP[char];
+      if (!morse) {
         preview += '[?] ';
         continue;
       }
-      preview += char.toUpperCase() + ':' + braille.map(d => d === 1 ? '●' : '○').join('') + ' ';
+      preview += char + ':' + morse + ' ';
     }
     return preview.trim();
   }
