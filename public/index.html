@@ -58,6 +58,7 @@
         <span id="darkModeIconMoon" class="dark:hidden">🌙</span>
         <span id="darkModeIconSun" class="hidden dark:inline">☀️</span>
       </button>
+      <button type="button" id="openDictionaryBtn" class="ml-2 p-3 rounded-xl bg-emerald-200 dark:bg-emerald-700 text-lg mt-2 font-bold" aria-label="Buka Kamus" title="Buka Kamus Bahasa Tactile">📖 Kamus</button>
       <label class="simple-only mt-3 flex items-center justify-center gap-2 cursor-pointer text-sm text-stone-600 dark:text-stone-400">
         <!-- Removed: simple/advanced toggle for universal layout -->
       </label>
@@ -235,6 +236,86 @@
   <script src="settings.js"></script>
   <script src="messageHistory.js"></script>
   <script src="features.js"></script>
+  <!-- Dictionary Modal -->
+  <div id="dictionaryModal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-stone-800 rounded-xl max-w-md w-full p-6 shadow-xl overflow-y-auto max-h-[90vh] relative">
+      <button type="button" id="closeDictionaryBtn" class="absolute top-2 right-2 p-2 rounded-full bg-stone-200 dark:bg-stone-700 text-xl" aria-label="Tutup Kamus">✕</button>
+      <h2 class="font-display text-2xl text-center mb-2 text-stone-900 dark:text-stone-100">Kamus Bahasa Tactile</h2>
+      <div class="text-xs text-stone-500 dark:text-stone-400 mb-2">Kaito Whale</div>
+      <div class="text-sm text-stone-800 dark:text-stone-100 whitespace-pre-line font-mono">
+Durasi Pola
+-----------
+• = dot
+— = dash
+
+KONFIRMASI
+----------
+•        YA
+—        TIDAK
+••—•     MUNGKIN
+———•     TIDAK TAHU
+•—••     MENGERTI
+—•••     TIDAK MENGERTI
+
+KEBUTUHAN
+---------
+••       MAKAN
+——       MINUM
+•—       MANDI
+—•       TIDUR
+•••—     TOILET
+——•—     OBAT
+•——      DUDUK
+—••      BERDIRI
+
+KONDISI
+-------
+•••      LAPAR
+———      HAUS
+•—•      SAKIT
+—•—      CAPEK
+••—      DINGIN
+——•      PANAS
+•——•     PUSING
+—•••     SESAK
+
+EMOSI
+-----
+•—••     SENANG
+—••—     SEDIH
+••—•     TAKUT
+——••     MARAH
+•——      TENANG
+—••      GELISAH
+
+BANTUAN
+-------
+••••     TOLONG
+————     DARURAT
+•——•     PULANG
+—••—     BUTUH BANTUAN
+••——     ULANGI
+——••     SELESAI
+•—••     DATANG
+—•——     PERGI
+
+INTERAKSI
+---------
+•—•—     DENGARKAN
+—•••     TUNGGU
+••—•     CEPAT
+———•     PELAN
+•——•     LAGI
+
+WAKTU
+-----
+•••—     SEKARANG
+—••—     NANTI
+•——•     PAGI
+—•—•     MALAM
+      </div>
+    </div>
+  </div>
   <script>
     // Dark mode toggle - exposed early so button works even if app.js init fails
     function toggleDarkMode() {
@@ -261,5 +342,25 @@
     } catch (e) {}
   </script>
   <script src="app.js"></script>
+  <script>
+    // Dictionary modal logic
+    document.addEventListener('DOMContentLoaded', function () {
+      var openBtn = document.getElementById('openDictionaryBtn');
+      var modal = document.getElementById('dictionaryModal');
+      var closeBtn = document.getElementById('closeDictionaryBtn');
+      if (openBtn && modal && closeBtn) {
+        openBtn.addEventListener('click', function () {
+          modal.classList.remove('hidden');
+        });
+        closeBtn.addEventListener('click', function () {
+          modal.classList.add('hidden');
+        });
+        // Close on overlay click
+        modal.addEventListener('click', function (e) {
+          if (e.target === modal) modal.classList.add('hidden');
+        });
+      }
+    });
+  </script>
 </body>
 </html>
